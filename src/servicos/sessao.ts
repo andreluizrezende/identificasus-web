@@ -20,6 +20,8 @@ const esquemaSessao = z.object({
   expiraEmSegundos: z.number(),
   coSessao: z.string(),
   st_expiracao: z.string(),
+  /** Ausente em backend anterior a ela: entao o console nao filtra no login. */
+  finalidade: z.string().nullable().optional(),
   usuario: z.object({
     id: z.number(),
     no_usuario: z.string(),
@@ -86,6 +88,20 @@ export async function entrar(dados: {
     return { ok: false, mensagem: 'Resposta inesperada do servidor', acao: 'Tente novamente em instantes' };
   }
   const s = lido.data;
+
+  // (!) CONTA QUE NAO E DA REGULACAO E RECUSADA AQUI, e nao na fila. Antes a
+  //     conta de campo entrava, via "Seu acesso nao e da Central de Regulacao"
+  //     na fila e ficava logada num console onde nao podia fazer nada. A
+  //     sessao que o servidor acabou de abrir e encerrada na hora.
+  if (s.finalidade !== undefined && s.finalidade !== FINALIDADE_DO_CONSOLE) {
+    await encerrarNoServidor(s.token, s.coSessao, 'conta sem finalidade de regulacao no console');
+    return {
+      ok: false,
+      mensagem: 'Esta conta não é da Central de Regulação',
+      acao: 'Entre com uma conta da regulação. A conta de campo é usada no aplicativo do tablet.',
+    };
+  }
+
   guardar({
     token: s.token,
     renovacao: s.renovacao,
@@ -159,6 +175,22 @@ export async function garantirTokenValido(): Promise<void> {
   await renovarToken();
 }
 
+/** A unica finalidade que este console serve (ver backend, regulacao/). */
+export const FINALIDADE_DO_CONSOLE = 'ADJUDICACAO';
+
+/** Encerra uma sessao no servidor; sem rede, ela vence sozinha nas 72 h. */
+async function encerrarNoServidor(token: string, coSessao: string, motivo: string): Promise<void> {
+  try {
+    await fetch(`${BASE}/sessao`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ coSessao, ds_motivo: motivo }),
+    });
+  } catch {
+    /* sem rede: a sessao do servidor vence sozinha nas 72 h */
+  }
+}
+
 /**
  * Sair: avisa o servidor (que encerra a sessão em mob_sessao e registra na
  * trilha) e apaga a sessão do navegador. A sessão local sai mesmo sem rede:
@@ -168,15 +200,7 @@ export async function sair(): Promise<void> {
   const s = obterSessao();
   apagar();
   if (!s) return;
-  try {
-    await fetch(`${BASE}/sessao`, {
-      method: 'DELETE',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${s.token}` },
-      body: JSON.stringify({ coSessao: s.coSessao, ds_motivo: 'saida pelo console' }),
-    });
-  } catch {
-    /* sem rede: a sessão do servidor vence sozinha nas 72 h */
-  }
+  await encerrarNoServidor(s.token, s.coSessao, 'saida pelo console');
 }
 
 /** Esquece a sessão local sem avisar o servidor (ex.: servidor já recusou). */

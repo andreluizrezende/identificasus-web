@@ -12,6 +12,7 @@ export const SESSAO = {
   expiraEmSegundos: 900,
   coSessao: 'SES-E2E',
   st_expiracao: '2099-01-01T00:00:00.000Z',
+  finalidade: 'ADJUDICACAO',
   usuario: { id: 50, no_usuario: 'Regulação de teste', ds_email: 'regulacao@example.org', perfis: ['REGULACAO'] },
   dispositivo: { co_dispositivo: 'APAR-HOM-0002', id_base: 1, no_base: 'Base Centro' },
 };

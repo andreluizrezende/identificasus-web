@@ -28,6 +28,23 @@ test.describe('entrar', () => {
     });
   });
 
+  test('(!) conta de campo e recusada ja na tela de entrar, e a sessao aberta e encerrada', async ({ page }) => {
+    let encerrou = false;
+    await page.route('**/api/sessao', async (r) => {
+      if (r.request().method() === 'DELETE') {
+        encerrou = true;
+        return r.fulfill({ status: 204 });
+      }
+      return r.fulfill({ json: { ...SESSAO, finalidade: 'ASSISTENCIAL' } });
+    });
+    await entrarPelaTela(page);
+
+    await expect(page.getByRole('alert')).toContainText('Esta conta não é da Central de Regulação');
+    await expect(page).toHaveURL(/\/entrar$/);
+    expect(encerrou).toBe(true);
+    expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
+  });
+
   test('aceita: vai para a fila com nome, base e estação na barra', async ({ page }) => {
     await simularBackend(page);
     await entrarPelaTela(page);

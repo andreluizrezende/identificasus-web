@@ -11,6 +11,7 @@ function respostaDeSessao(expiraEmSegundos = 900, stExpiracao = '2099-01-01T00:0
     expiraEmSegundos,
     coSessao: 'SES-1',
     st_expiracao: stExpiracao,
+    finalidade: 'ADJUDICACAO' as string | null,
     usuario: { id: 50, no_usuario: 'Regulação', ds_email: 'r@x.org', perfis: ['REGULACAO'] },
     dispositivo: { co_dispositivo: 'APAR-HOM-0002', id_base: 1, no_base: 'Base Centro' },
   };
@@ -80,6 +81,29 @@ describe('entrar', () => {
     const r = await entrar({ dsEmail: 'a', senha: 'b', coDispositivo: 'c' });
     expect(r).toMatchObject({ ok: false, mensagem: 'Resposta inesperada do servidor' });
     expect(obterSessao()).toBeNull();
+  });
+});
+
+describe('entrar — so conta da regulacao', () => {
+  it('(!) conta de campo e recusada no login, a sessao do servidor e encerrada e nada fica guardado', async () => {
+    fetchFalso
+      .mockResolvedValueOnce(json({ ...respostaDeSessao(), finalidade: 'ASSISTENCIAL' }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const r = await entrar({ dsEmail: 'campo@x.org', senha: 's', coDispositivo: 'APAR-HOM-0001' });
+
+    expect(r).toMatchObject({ ok: false, mensagem: 'Esta conta não é da Central de Regulação' });
+    expect(obterSessao()).toBeNull();
+    const [url, init] = fetchFalso.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe('/api/sessao');
+    expect(init.method).toBe('DELETE');
+    expect((init.headers as Record<string, string>).authorization).toBe('Bearer acesso-1');
+  });
+
+  it('backend que ainda nao manda a finalidade continua entrando (compatibilidade)', async () => {
+    const semFinalidade: Record<string, unknown> = respostaDeSessao();
+    delete semFinalidade.finalidade;
+    fetchFalso.mockResolvedValueOnce(json(semFinalidade));
+    await expect(entrar({ dsEmail: 'r@x.org', senha: 's', coDispositivo: 'c' })).resolves.toEqual({ ok: true });
   });
 });
 
