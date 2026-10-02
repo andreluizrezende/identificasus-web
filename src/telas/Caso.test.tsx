@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as Regulacao from '@/servicos/regulacao';
@@ -10,6 +11,8 @@ import { Caso } from './Caso';
 //     "não tratada" mesmo com a tela pegando o erro. O vi.fn só anota a chamada.
 const chamadas = vi.fn<(coCaso: string) => void>();
 let resposta: DadosDoCaso | Error;
+const chamadasDeFotos = vi.fn<(coCaso: string) => void>();
+let respostaDeFotos: Regulacao.Foto[] | Error = [];
 
 vi.mock('@/servicos/regulacao', async (original) => ({
   ...(await original<typeof Regulacao>()),
@@ -17,6 +20,11 @@ vi.mock('@/servicos/regulacao', async (original) => ({
     chamadas(coCaso);
     if (resposta instanceof Error) throw resposta;
     return resposta;
+  },
+  buscarFotos: async (coCaso: string) => {
+    chamadasDeFotos(coCaso);
+    if (respostaDeFotos instanceof Error) throw respostaDeFotos;
+    return respostaDeFotos;
   },
 }));
 
@@ -99,5 +107,68 @@ describe('tela do caso', () => {
     resposta = new ErroApi(503, 'O servidor não respondeu agora. Tente de novo em instantes.');
     abrir();
     expect(await screen.findByRole('alert')).toHaveTextContent('O servidor não respondeu agora');
+  });
+});
+
+const FOTO: Regulacao.Foto = {
+  idMidia: 7, dsLegenda: null, nuTamanho: 63738, capturadaEm: '2026-10-02 18:32:30.000000',
+  noAutor: 'Ana', url: 'https://loja.private.blob.vercel-storage.com/casos/x.jpg?sig=1',
+  validaAte: '2026-10-02T18:42:30.000Z',
+};
+
+describe('tela do caso: fotos', () => {
+  beforeEach(() => {
+    chamadasDeFotos.mockReset();
+    resposta = CASO;
+    respostaDeFotos = [];
+  });
+
+  it('(!) abrir o caso nao carrega as fotos: so quando alguem pede', async () => {
+    abrir();
+    await screen.findByRole('heading', { name: 'NN-2026-ABCDEFGH' });
+    expect(screen.getByText(/quem as vê fica registrado na trilha/)).toBeInTheDocument();
+    expect(chamadasDeFotos).not.toHaveBeenCalled();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('"Mostrar fotos" carrega e mostra cada foto com autor, pela URL assinada', async () => {
+    respostaDeFotos = [FOTO];
+    const usuario = userEvent.setup();
+    abrir();
+    await usuario.click(await screen.findByRole('button', { name: 'Mostrar fotos' }));
+
+    const img = await screen.findByRole('img', { name: 'Foto 7 do caso NN-2026-ABCDEFGH' });
+    expect(chamadasDeFotos).toHaveBeenCalledWith('NN-2026-ABCDEFGH');
+    expect(img).toHaveAttribute('src', FOTO.url);
+    expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
+    expect(screen.getByText(/Ana/, { selector: '.fotos-legenda' })).toBeInTheDocument();
+  });
+
+  it('caso sem foto diz isso', async () => {
+    const usuario = userEvent.setup();
+    abrir();
+    await usuario.click(await screen.findByRole('button', { name: 'Mostrar fotos' }));
+    expect(await screen.findByText('A equipe não anexou fotos neste caso.')).toBeInTheDocument();
+  });
+
+  it('(!) URL expirada: avisa e deixa carregar de novo', async () => {
+    respostaDeFotos = [FOTO];
+    const usuario = userEvent.setup();
+    abrir();
+    await usuario.click(await screen.findByRole('button', { name: 'Mostrar fotos' }));
+    fireEvent.error(await screen.findByRole('img'));
+
+    expect(await screen.findByText('O acesso às fotos expirou.')).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Carregar de novo' }));
+    expect(chamadasDeFotos).toHaveBeenCalledTimes(2);
+  });
+
+  it('erro ao buscar as fotos nao derruba o caso', async () => {
+    respostaDeFotos = new ErroApi(503, 'O servidor não respondeu agora.');
+    const usuario = userEvent.setup();
+    abrir();
+    await usuario.click(await screen.findByRole('button', { name: 'Mostrar fotos' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('O servidor não respondeu agora.');
+    expect(screen.getByRole('heading', { name: 'NN-2026-ABCDEFGH' })).toBeInTheDocument();
   });
 });

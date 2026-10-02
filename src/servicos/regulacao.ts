@@ -65,3 +65,27 @@ export type Caso = z.infer<typeof esquemaCaso>;
 export function buscarCaso(coCaso: string): Promise<Caso> {
   return requisitar(`/regulacao/casos/${encodeURIComponent(coCaso)}`, esquemaCaso);
 }
+
+/**
+ * Foto do caso (`GET /api/regulacao/casos/:coCaso/fotos`). A `url` é de
+ * leitura, assinada para aquele arquivo e curta (`validaAte`): o store é
+ * privado, e a foto vem direto dele, sem passar pelo backend.
+ *
+ * (!) SÓ HTTPS. A URL vira `src` de imagem; o esquema recusa qualquer outra
+ *     coisa vinda do servidor.
+ */
+export const esquemaFoto = z.object({
+  idMidia: z.number(),
+  dsLegenda: z.string().nullable(),
+  nuTamanho: z.number(),
+  capturadaEm: z.string(),
+  noAutor: z.string(),
+  url: z.string().url().startsWith('https://'),
+  validaAte: z.string(),
+});
+export type Foto = z.infer<typeof esquemaFoto>;
+
+/** Chamado só quando a tela vai mostrar as fotos: ver foto entra na trilha. */
+export function buscarFotos(coCaso: string): Promise<Foto[]> {
+  return requisitar(`/regulacao/casos/${encodeURIComponent(coCaso)}/fotos`, z.array(esquemaFoto));
+}

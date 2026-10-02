@@ -140,6 +140,18 @@ button:disabled { cursor: default; opacity: .6; }
 
 /* ── caso ───────────────────────────────────────────────── */
 
+.fotos {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+}
+.fotos li { display: flex; flex-direction: column; gap: 6px; }
+.fotos img {
+  display: block; width: 100%; height: 180px; object-fit: cover;
+  border: 1px solid var(--linha); border-radius: var(--raio); background: var(--linha-2);
+}
+.fotos-legenda { font-size: 12.5px; color: var(--ink-2); }
+.aviso .botao-secundario { margin-top: 8px; }
+
 .tabela a { color: var(--primaria); text-decoration: none; }
 .tabela a:hover { text-decoration: underline; }
 

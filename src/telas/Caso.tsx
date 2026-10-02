@@ -3,8 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Moldura } from '@/componentes/Moldura';
 import { formatarCarimbo, formatarOcorrencia } from '@/dominio/datas';
 import { nomeDoEstado, situacaoDoPrazo, textoDoPrazo } from '@/dominio/prazo';
-import { ErroApi, buscarCaso } from '@/servicos/regulacao';
-import type { Atributo, Caso as DadosDoCaso } from '@/servicos/regulacao';
+import { ErroApi, buscarCaso, buscarFotos } from '@/servicos/regulacao';
+import type { Atributo, Caso as DadosDoCaso, Foto } from '@/servicos/regulacao';
 import { esquecerSessao } from '@/servicos/sessao';
 
 type Estado =
@@ -135,6 +135,8 @@ function Detalhe({ caso }: { caso: DadosDoCaso }) {
         )}
       </section>
 
+      <Fotos coCaso={caso.coCaso} />
+
       <section className="painel" aria-labelledby="titulo-historico">
         <h2 id="titulo-historico">Histórico</h2>
         {caso.historico.length === 0 ? (
@@ -156,6 +158,105 @@ function Detalhe({ caso }: { caso: DadosDoCaso }) {
         )}
       </section>
     </>
+  );
+}
+
+type EstadoDasFotos =
+  | { tipo: 'fechado' }
+  | { tipo: 'carregando' }
+  | { tipo: 'pronto'; fotos: Foto[] }
+  | { tipo: 'erro'; mensagem: string };
+
+/**
+ * Fotos de marca identificadora tiradas em campo.
+ *
+ * (!) SÓ CARREGAM QUANDO ALGUÉM PEDE. Abrir o caso não mostra as fotos: é o
+ *     dado mais sensível do registro, e o servidor põe na trilha quem as viu.
+ *     Carregar sozinho poria na trilha quem só abriu o caso para ler o local.
+ *
+ * (!) A URL DE CADA FOTO EXPIRA EM MINUTOS. Se a tela ficar aberta além disso,
+ *     a imagem deixa de carregar; o botão pede URLs novas (e isso é outra
+ *     consulta na trilha, como deve ser).
+ */
+function Fotos({ coCaso }: { coCaso: string }) {
+  const [estado, setEstado] = useState<EstadoDasFotos>({ tipo: 'fechado' });
+  const [expiradas, setExpiradas] = useState(false);
+
+  async function mostrar(): Promise<void> {
+    setEstado({ tipo: 'carregando' });
+    setExpiradas(false);
+    try {
+      setEstado({ tipo: 'pronto', fotos: await buscarFotos(coCaso) });
+    } catch (erro) {
+      setEstado({
+        tipo: 'erro',
+        mensagem: erro instanceof ErroApi ? erro.message : 'Não foi possível carregar as fotos.',
+      });
+    }
+  }
+
+  return (
+    <section className="painel" aria-labelledby="titulo-fotos">
+      <h2 id="titulo-fotos">Fotos</h2>
+
+      {estado.tipo === 'fechado' && (
+        <>
+          <p className="painel-vazio">
+            As fotos só aparecem quando você pede, e quem as vê fica registrado na trilha.
+          </p>
+          <button type="button" className="botao-secundario" onClick={() => void mostrar()}>
+            Mostrar fotos
+          </button>
+        </>
+      )}
+
+      {estado.tipo === 'carregando' && <p className="painel-vazio" role="status">Carregando as fotos…</p>}
+
+      {estado.tipo === 'erro' && (
+        <div className="aviso" role="alert">
+          <strong>{estado.mensagem}</strong>
+          <button type="button" className="botao-secundario" onClick={() => void mostrar()}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {estado.tipo === 'pronto' && estado.fotos.length === 0 && (
+        <p className="painel-vazio">A equipe não anexou fotos neste caso.</p>
+      )}
+
+      {estado.tipo === 'pronto' && estado.fotos.length > 0 && (
+        <>
+          {expiradas && (
+            <div className="aviso" role="alert">
+              <strong>O acesso às fotos expirou.</strong>
+              <button type="button" className="botao-secundario" onClick={() => void mostrar()}>
+                Carregar de novo
+              </button>
+            </div>
+          )}
+          <ul className="fotos">
+            {estado.fotos.map((f) => (
+              <li key={f.idMidia}>
+                <a href={f.url} target="_blank" rel="noreferrer noopener">
+                  <img
+                    src={f.url}
+                    alt={f.dsLegenda ?? `Foto ${f.idMidia} do caso ${coCaso}`}
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    onError={() => setExpiradas(true)}
+                  />
+                </a>
+                <span className="fotos-legenda">
+                  {f.dsLegenda && <>{f.dsLegenda} · </>}
+                  {f.noAutor} · <span className="mono">{formatarCarimbo(f.capturadaEm)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 
