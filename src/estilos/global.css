@@ -36,8 +36,14 @@ button:disabled { cursor: default; opacity: .6; }
   background: var(--ink);
   color: #fff;
 }
-.barra-marca { font-weight: 600; font-size: 16px; }
-.barra-marca span { font-weight: 400; color: #A8AEBB; margin-left: 8px; }
+.barra-marca { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 16px; }
+.barra-subtitulo { font-weight: 400; color: #A8AEBB; margin-left: 8px; }
+/* Marca SAMU 192 sobre branco (preferencia do manual de identidade visual). */
+.placa-samu {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%; background: #fff;
+}
+.placa-samu img { width: 36px; height: 36px; display: block; }
 .barra-pessoa { margin-left: auto; text-align: right; font-size: 13px; line-height: 1.3; }
 .barra-pessoa small { color: #A8AEBB; }
 .barra-sair {
@@ -64,6 +70,7 @@ button:disabled { cursor: default; opacity: .6; }
   border-radius: var(--raio);
   padding: 32px;
 }
+.entrar-logo { display: block; height: 104px; margin: 0 auto 20px; }
 .entrar-cartao h1 { margin: 0; font-size: 20px; }
 .entrar-cartao > p { margin: 6px 0 24px; color: var(--ink-2); line-height: 1.5; }
 

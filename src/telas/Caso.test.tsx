@@ -128,7 +128,7 @@ describe('tela do caso: fotos', () => {
     await screen.findByRole('heading', { name: 'NN-2026-ABCDEFGH' });
     expect(screen.getByText(/quem as vê fica registrado na trilha/)).toBeInTheDocument();
     expect(chamadasDeFotos).not.toHaveBeenCalled();
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /^Foto / })).not.toBeInTheDocument();
   });
 
   it('"Mostrar fotos" carrega e mostra cada foto com autor, pela URL assinada', async () => {
@@ -156,7 +156,7 @@ describe('tela do caso: fotos', () => {
     const usuario = userEvent.setup();
     abrir();
     await usuario.click(await screen.findByRole('button', { name: 'Mostrar fotos' }));
-    fireEvent.error(await screen.findByRole('img'));
+    fireEvent.error(await screen.findByRole('img', { name: /^Foto / }));
 
     expect(await screen.findByText('O acesso às fotos expirou.')).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Carregar de novo' }));

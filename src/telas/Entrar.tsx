@@ -45,6 +45,7 @@ export function Entrar() {
   return (
     <div className="entrar">
       <form className="entrar-cartao" onSubmit={(e) => void enviar(e)}>
+        <img className="entrar-logo" src="/logo-samu.svg" alt="SAMU 192" />
         <h1>Central de Regulação</h1>
         <p>IdentificaSUS · SAMU 192 Salvador. Acesso individual: toda decisão de vínculo tem autor.</p>
 

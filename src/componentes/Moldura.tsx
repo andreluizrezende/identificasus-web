@@ -16,7 +16,10 @@ export function Moldura({ children }: { children: ReactNode }) {
     <>
       <header className="barra">
         <div className="barra-marca">
-          IdentificaSUS<span>Central de Regulação</span>
+          {/* Sobre plaqueta branca: o manual do SAMU 192 prefere a marca sobre
+              branco, e o vermelho do emblema some no fundo escuro da barra. */}
+          <span className="placa-samu"><img src="/emblema-samu.svg" alt="SAMU 192" /></span>
+          <span>IdentificaSUS<span className="barra-subtitulo">Central de Regulação</span></span>
         </div>
         {sessao && (
           <div className="barra-pessoa">
