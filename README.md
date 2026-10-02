@@ -140,6 +140,20 @@ e2e/               testes de interface e o backend simulado
 Em produção (`vercel.json`), `/api` é repassado para o backend na mesma origem:
 proxy, e não CORS, como no app.
 
+## Produção
+
+Publicado em **https://identificasus-web.vercel.app** (projeto
+`identificasus-web` na Vercel, ligado a este repositório: push na `main`
+publica sozinho). Não há variável de ambiente: o endereço do backend está no
+`vercel.json`, e o console não guarda segredo nenhum.
+
+O backend escolhe o banco pela finalidade, e a do console é ADJUDICACAO: sem
+`DATABASE_URL_ADJUDICACAO` em Production no projeto do backend, toda rota do
+console responde 500 (ver `PENDENCIAS.md` do backend).
+
+As estações entram com o código cadastrado em `mob_dispositivo`. Enquanto a
+SMS não manda a lista oficial, vale o de homologação: `APAR-HOM-0005`.
+
 ## Regras que o código precisa preservar
 
 **Sessão em `sessionStorage`, nunca em `localStorage`.** A estação da central é
