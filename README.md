@@ -23,6 +23,20 @@ regra `campo-nao-importa-motor` do `identificasus-app`).
 | Detalhe do caso | `/casos/:coCaso` | `GET /api/regulacao/casos/:coCaso` |
 | Fotos do caso (no detalhe, sob pedido) | `/casos/:coCaso` | `GET /api/regulacao/casos/:coCaso/fotos` |
 | Decisão do caso (no detalhe) | `/casos/:coCaso` | `POST /api/regulacao/casos/:coCaso/decisao` |
+| Primeiro acesso ou senha esquecida | `/recuperar-senha` | `POST /api/sessao/recuperacao` e `.../confirmacao` |
+| Administração: profissionais | `/admin/profissionais` | `GET/POST /api/admin/profissionais`, `PATCH .../:id` |
+| Administração: aparelhos e estações | `/admin/aparelhos` | `GET/POST /api/admin/aparelhos`, `POST .../:codigo/revogar` |
+
+**Duas áreas, pela finalidade da conta.** Conta `ADJUDICACAO` entra na fila e
+nos casos; conta `ADMINISTRACAO`, no cadastro. Uma não abre a área da outra (o
+backend recusa com 403, e a tela leva cada uma ao início da sua). Conta de
+campo continua recusada no login.
+
+- **Cadastro sem senha:** a administração nunca define nem vê a senha de
+  ninguém. A conta nasce sem senha, a lista mostra "aguardando primeiro
+  acesso", e a pessoa define a dela em "Primeiro acesso" com o código enviado
+  ao e-mail. Ninguém desativa a própria conta. Nada se apaga: profissional sai
+  desativado, aparelho sai revogado (com motivo; sem volta pela tela).
 
 - **Fila:** casos em `ANALISE` ou `ADJUDICACAO`, do prazo mais apertado para o
   mais folgado. O caso entra na fila quando a equipe fecha a captura no
@@ -107,7 +121,7 @@ aparelhos de `db/04_homologacao.sql`, por exemplo `APAR-HOM-0002`.
 | `servicos/sessao.test.ts` | entrar, `sessionStorage`, renovação única, sair sem rede |
 | `servicos/api.test.ts` | token no cabeçalho, renovação e repetição no 401, validação Zod |
 | `servicos/regulacao.test.ts` | URLs, código codificado, escore e candidatos descartados pelo esquema |
-| `telas/*.test.tsx` | Entrar, Fila e Caso: estados de carga, erro, 401 e 404 |
+| `telas/*.test.tsx` | Entrar, RecuperarSenha, Fila, Caso (fotos e decisão) e admin/: estados de carga, erro, 401, 404 e 409 |
 | `componentes/componentes.test.tsx` | `Protegida` e `Moldura` |
 
 **Interface** (`e2e/`), com Playwright. O backend é simulado com `page.route`
@@ -143,7 +157,7 @@ src/
 ├── dominio/       regras puras: prazo, datas, nomes de estado
 ├── servicos/      sessão, cliente HTTP e serviço da regulação (Zod em toda resposta)
 ├── componentes/   Moldura (barra do console) e Protegida (exige sessão)
-├── telas/         Entrar, Fila, Caso
+├── telas/         Entrar, RecuperarSenha, Fila, Caso; admin/ Profissionais e Aparelhos
 └── estilos/       tokens (os mesmos do app de campo) e CSS global
 e2e/               testes de interface e o backend simulado
 ```

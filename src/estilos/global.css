@@ -180,6 +180,43 @@ button:disabled { cursor: default; opacity: .6; }
 .aviso-ok strong { display: block; margin-bottom: 4px; }
 .painel .botao-secundario { display: inline-block; text-decoration: none; }
 
+/* ── administração ─────────────────────────────────────── */
+
+.barra-abas { display: flex; gap: 4px; margin-left: 16px; }
+.barra-abas a {
+  color: #A8AEBB; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: var(--raio);
+}
+.barra-abas a:hover { color: #fff; }
+.barra-abas a.active { color: #fff; background: #2A2E37; }
+.formulario { margin-bottom: 20px; }
+.formulario h2 { margin: 0 0 14px; font-size: 16px; }
+.formulario-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 16px; }
+.campo select {
+  height: 40px; border: 1px solid var(--linha); border-radius: var(--raio);
+  padding: 0 10px; font-size: 14px; font-family: inherit; background: #fff;
+}
+.formulario-acoes { display: flex; gap: 10px; align-items: center; }
+.formulario-acoes .botao { width: auto; padding: 0 20px; }
+.caixas { border: none; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.caixas legend { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.caixas label { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+.celula-nota { display: block; color: var(--ink-3); font-size: 12px; font-family: inherit; }
+/* CPF mascarado e códigos não quebram no meio ("***.982.247-" / "**"). */
+.tabela td.mono { white-space: nowrap; }
+.celula-acoes { white-space: nowrap; }
+.celula-acoes .botao-secundario + .botao-secundario { margin-left: 6px; }
+.linha-inativa td { color: var(--ink-3); }
+.editor-acesso {
+  display: flex; flex-direction: column; gap: 8px; min-width: 260px; white-space: normal;
+  padding: 10px; border: 1px solid var(--linha); border-radius: var(--raio); background: var(--linha-2);
+}
+.editor-acesso .campo { margin-bottom: 0; }
+.editor-acesso .campo input { height: 34px; }
+.aviso-texto { color: var(--critico); font-size: 13px; }
+.entrar-nota { margin: 16px 0 0; font-size: 13px; text-align: center; }
+.entrar-nota a { color: var(--primaria); }
+.entrar-cartao .aviso-ok { margin: 0 0 16px; }
+
 .tabela a { color: var(--primaria); text-decoration: none; }
 .tabela a:hover { text-decoration: underline; }
 

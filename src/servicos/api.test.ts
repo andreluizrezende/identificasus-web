@@ -73,4 +73,28 @@ describe('requisitar', () => {
     expect(erro).toBeInstanceOf(ErroApi);
     expect(erro).toMatchObject({ status, message: mensagem });
   });
+
+  it('(!) 409 do cadastro chega com a mensagem do servidor e o campo apontado', async () => {
+    guardarSessao();
+    fetchFalso.mockResolvedValueOnce(json({ mensagem: 'Já existe uma conta com este CPF.', campo: 'cpf' }, 409));
+    const erro: unknown = await requisitar('/x', esquema).catch((e: unknown) => e);
+    expect(erro).toMatchObject({ status: 409, message: 'Já existe uma conta com este CPF.', campo: 'cpf' });
+  });
+
+  it('mensagem do servidor fora do formato, longa ou do pipe de validação: fica a genérica', async () => {
+    guardarSessao();
+    fetchFalso
+      .mockResolvedValueOnce(json({ mensagem: 'x'.repeat(201) }, 400))
+      .mockResolvedValueOnce(json({ mensagem: 'Requisicao invalida.', campos: [] }, 400));
+    for (let i = 0; i < 2; i += 1) {
+      const erro: unknown = await requisitar('/x', esquema).catch((e: unknown) => e);
+      expect(erro).toMatchObject({ status: 400, message: 'Não foi possível concluir a operação.', campo: null });
+    }
+  });
+
+  it('204 sem corpo passa pelo esquema como null', async () => {
+    guardarSessao();
+    fetchFalso.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    expect(await requisitar('/x', z.null())).toBeNull();
+  });
 });

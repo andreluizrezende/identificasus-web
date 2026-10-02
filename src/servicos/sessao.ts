@@ -45,6 +45,8 @@ const esquemaGuardado = z.object({
   perfis: z.array(z.string()),
   noBase: z.string(),
   coDispositivo: z.string(),
+  // Sessão guardada antes da área de administração: era sempre da regulação.
+  finalidade: z.enum(['ADJUDICACAO', 'ADMINISTRACAO']).default('ADJUDICACAO'),
 });
 export type SessaoGuardada = z.infer<typeof esquemaGuardado>;
 
@@ -89,16 +91,17 @@ export async function entrar(dados: {
   }
   const s = lido.data;
 
-  // (!) CONTA QUE NAO E DA REGULACAO E RECUSADA AQUI, e nao na fila. Antes a
+  // (!) CONTA QUE NAO E DO CONSOLE E RECUSADA AQUI, e nao na fila. Antes a
   //     conta de campo entrava, via "Seu acesso nao e da Central de Regulacao"
   //     na fila e ficava logada num console onde nao podia fazer nada. A
   //     sessao que o servidor acabou de abrir e encerrada na hora.
-  if (s.finalidade !== undefined && s.finalidade !== FINALIDADE_DO_CONSOLE) {
-    await encerrarNoServidor(s.token, s.coSessao, 'conta sem finalidade de regulacao no console');
+  const finalidade = finalidadeDoConsole(s.finalidade);
+  if (finalidade === null) {
+    await encerrarNoServidor(s.token, s.coSessao, 'conta sem finalidade de regulacao ou administracao no console');
     return {
       ok: false,
       mensagem: 'Esta conta não é da Central de Regulação',
-      acao: 'Entre com uma conta da regulação. A conta de campo é usada no aplicativo do tablet.',
+      acao: 'Entre com uma conta da regulação ou da administração. A conta de campo é usada no aplicativo do tablet.',
     };
   }
 
@@ -112,6 +115,7 @@ export async function entrar(dados: {
     perfis: s.usuario.perfis,
     noBase: s.dispositivo.no_base,
     coDispositivo: s.dispositivo.co_dispositivo,
+    finalidade,
   });
   return { ok: true };
 }
@@ -175,8 +179,29 @@ export async function garantirTokenValido(): Promise<void> {
   await renovarToken();
 }
 
-/** A unica finalidade que este console serve (ver backend, regulacao/). */
-export const FINALIDADE_DO_CONSOLE = 'ADJUDICACAO';
+/**
+ * As finalidades que este console serve, cada uma com a sua área: a
+ * regulação (ADJUDICACAO; fila e casos) e a administração (ADMINISTRACAO;
+ * cadastro de profissionais e aparelhos). Uma conta só tem uma finalidade,
+ * então quem decide vínculo não cria contas, e quem cria contas não lê casos.
+ */
+export const FINALIDADES_DO_CONSOLE = ['ADJUDICACAO', 'ADMINISTRACAO'] as const;
+export type FinalidadeDoConsole = (typeof FINALIDADES_DO_CONSOLE)[number];
+
+function finalidadeDoConsole(f: string | null | undefined): FinalidadeDoConsole | null {
+  // Backend anterior à finalidade na resposta: só existia a regulação.
+  if (f === undefined) return 'ADJUDICACAO';
+  return FINALIDADES_DO_CONSOLE.find((x) => x === f) ?? null;
+}
+
+/** Onde cada área começa, e se um caminho é da área. */
+export function inicioDa(finalidade: FinalidadeDoConsole): string {
+  return finalidade === 'ADMINISTRACAO' ? '/admin/profissionais' : '/fila';
+}
+export function caminhoDaArea(caminho: string, finalidade: FinalidadeDoConsole): boolean {
+  const deAdministracao = caminho === '/admin' || caminho.startsWith('/admin/');
+  return finalidade === 'ADMINISTRACAO' ? deAdministracao : !deAdministracao;
+}
 
 /** Encerra uma sessao no servidor; sem rede, ela vence sozinha nas 72 h. */
 async function encerrarNoServidor(token: string, coSessao: string, motivo: string): Promise<void> {

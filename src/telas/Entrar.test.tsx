@@ -3,17 +3,21 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ResultadoEntrada } from '@/servicos/sessao';
+import type * as Sessao from '@/servicos/sessao';
 import { Entrar } from './Entrar';
 
 // Dublê comum, e não vi.fn devolvendo promessa (ver Caso.test.tsx).
 const pedidos = vi.fn<(dados: unknown) => void>();
 let resultado: ResultadoEntrada = { ok: true };
+let finalidadeDaConta: 'ADJUDICACAO' | 'ADMINISTRACAO' = 'ADJUDICACAO';
 
-vi.mock('@/servicos/sessao', () => ({
+vi.mock('@/servicos/sessao', async (original) => ({
+  ...(await original<typeof Sessao>()),
   entrar: async (dados: unknown) => {
     pedidos(dados);
     return resultado;
   },
+  obterSessao: () => ({ finalidade: finalidadeDaConta }),
 }));
 
 function Destino() {
@@ -43,6 +47,37 @@ describe('tela de entrar', () => {
   beforeEach(() => {
     pedidos.mockReset();
     resultado = { ok: true };
+    finalidadeDaConta = 'ADJUDICACAO';
+  });
+
+  it('(!) conta da administração vai para o cadastro, mesmo que ia para a fila', async () => {
+    finalidadeDaConta = 'ADMINISTRACAO';
+    abrir('/fila');
+    await preencher();
+    expect(await screen.findByText('destino: /admin/profissionais')).toBeInTheDocument();
+  });
+
+  it('conta da administração volta para onde ia, se for do cadastro', async () => {
+    finalidadeDaConta = 'ADMINISTRACAO';
+    abrir('/admin/aparelhos');
+    await preencher();
+    expect(await screen.findByText('destino: /admin/aparelhos')).toBeInTheDocument();
+  });
+
+  it('(!) conta da regulação não volta para o cadastro: vai para a fila', async () => {
+    abrir('/admin/profissionais');
+    await preencher();
+    expect(await screen.findByText('destino: /fila')).toBeInTheDocument();
+  });
+
+  it('o recado de senha definida aparece', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/entrar', state: { aviso: 'Senha definida. Entre com ela.' } }]}>
+        <Routes><Route path="/entrar" element={<Entrar />} /></Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Senha definida. Entre com ela.');
+    expect(screen.getByRole('link', { name: 'Primeiro acesso ou esqueceu a senha?' })).toHaveAttribute('href', '/recuperar-senha');
   });
 
   it('manda e-mail sem espaços, senha e estação em maiúsculas, e vai para a fila', async () => {

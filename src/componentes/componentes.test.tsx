@@ -7,11 +7,11 @@ import { Protegida } from './Protegida';
 
 const CHAVE = 'identificasus.web.sessao';
 
-function guardarSessao(stExpiracao = '2099-01-01T00:00:00.000Z'): void {
+function guardarSessao(stExpiracao = '2099-01-01T00:00:00.000Z', finalidade = 'ADJUDICACAO'): void {
   sessionStorage.setItem(CHAVE, JSON.stringify({
     token: 'acesso-1', renovacao: 'r', acessoVenceEm: Date.now() + 600_000, coSessao: 'SES-1',
     stExpiracao, noUsuario: 'Regulação de teste', perfis: ['REGULACAO'],
-    noBase: 'Base Centro', coDispositivo: 'APAR-HOM-0002',
+    noBase: 'Base Centro', coDispositivo: 'APAR-HOM-0002', finalidade,
   }));
 }
 
@@ -51,6 +51,33 @@ describe('Protegida', () => {
     abrir();
     expect(screen.getByText('conteúdo do caso')).toBeInTheDocument();
   });
+
+  it('(!) conta da administração não abre caso: vai para o cadastro', () => {
+    guardarSessao(undefined, 'ADMINISTRACAO');
+    render(
+      <MemoryRouter initialEntries={['/casos/NN-1']}>
+        <Routes>
+          <Route path="/casos/:c" element={<Protegida><p>conteúdo do caso</p></Protegida>} />
+          <Route path="/admin/profissionais" element={<p>cadastro</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('cadastro')).toBeInTheDocument();
+    expect(screen.queryByText('conteúdo do caso')).not.toBeInTheDocument();
+  });
+
+  it('(!) conta da regulação não abre o cadastro: vai para a fila', () => {
+    guardarSessao();
+    render(
+      <MemoryRouter initialEntries={['/admin/profissionais']}>
+        <Routes>
+          <Route path="/admin/profissionais" element={<Protegida finalidade="ADMINISTRACAO"><p>cadastro</p></Protegida>} />
+          <Route path="/fila" element={<p>fila</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('fila')).toBeInTheDocument();
+  });
 });
 
 describe('Moldura', () => {
@@ -73,6 +100,20 @@ describe('Moldura', () => {
     expect(barra).toHaveTextContent('Base Centro');
     expect(barra).toHaveTextContent('APAR-HOM-0002');
     expect(screen.getByText('miolo')).toBeInTheDocument();
+  });
+
+  it('na administração, a barra diz "Administração" e mostra as abas do cadastro', () => {
+    guardarSessao(undefined, 'ADMINISTRACAO');
+    abrir();
+    expect(screen.getByRole('banner')).toHaveTextContent('Administração');
+    expect(screen.getByRole('link', { name: 'Profissionais' })).toHaveAttribute('href', '/admin/profissionais');
+    expect(screen.getByRole('link', { name: 'Aparelhos e estações' })).toBeInTheDocument();
+  });
+
+  it('na regulação, sem abas de cadastro', () => {
+    guardarSessao();
+    abrir();
+    expect(screen.queryByRole('navigation', { name: 'Cadastro' })).not.toBeInTheDocument();
   });
 
   it('"Sair" apaga a sessão e volta para entrar', async () => {

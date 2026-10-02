@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  entrar, esquecerSessao, garantirTokenValido, obterSessao, renovarToken, sair, temSessaoValida,
+  caminhoDaArea, entrar, esquecerSessao, garantirTokenValido, inicioDa, obterSessao, renovarToken, sair, temSessaoValida,
 } from './sessao';
 
 /** A resposta de `POST /api/sessao`, como o backend devolve. */
@@ -104,6 +104,33 @@ describe('entrar — so conta da regulacao', () => {
     delete semFinalidade.finalidade;
     fetchFalso.mockResolvedValueOnce(json(semFinalidade));
     await expect(entrar({ dsEmail: 'r@x.org', senha: 's', coDispositivo: 'c' })).resolves.toEqual({ ok: true });
+    expect(obterSessao()?.finalidade).toBe('ADJUDICACAO');
+  });
+
+  it('conta da administração entra, e a sessão guarda a finalidade', async () => {
+    fetchFalso.mockResolvedValueOnce(json({ ...respostaDeSessao(), finalidade: 'ADMINISTRACAO' }));
+    await expect(entrar({ dsEmail: 'adm@x.org', senha: 's', coDispositivo: 'c' })).resolves.toEqual({ ok: true });
+    expect(obterSessao()?.finalidade).toBe('ADMINISTRACAO');
+  });
+
+  it('sessão guardada antes da administração existir conta como regulação', () => {
+    sessionStorage.setItem('identificasus.web.sessao', JSON.stringify({
+      token: 't', renovacao: 'r', acessoVenceEm: 1, coSessao: 's', stExpiracao: '2099-01-01T00:00:00.000Z',
+      noUsuario: 'R', perfis: [], noBase: 'B', coDispositivo: 'D',
+    }));
+    expect(obterSessao()?.finalidade).toBe('ADJUDICACAO');
+  });
+});
+
+describe('áreas do console', () => {
+  it('cada finalidade começa na sua área, e só a sua área conta como dela', () => {
+    expect(inicioDa('ADJUDICACAO')).toBe('/fila');
+    expect(inicioDa('ADMINISTRACAO')).toBe('/admin/profissionais');
+    expect(caminhoDaArea('/casos/NN-1', 'ADJUDICACAO')).toBe(true);
+    expect(caminhoDaArea('/admin/aparelhos', 'ADJUDICACAO')).toBe(false);
+    expect(caminhoDaArea('/admin/aparelhos', 'ADMINISTRACAO')).toBe(true);
+    expect(caminhoDaArea('/fila', 'ADMINISTRACAO')).toBe(false);
+    expect(caminhoDaArea('/administrativo', 'ADMINISTRACAO')).toBe(false);
   });
 });
 
