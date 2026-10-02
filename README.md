@@ -21,6 +21,8 @@ regra `campo-nao-importa-motor` do `identificasus-app`).
 | Entrar | `/entrar` | `POST /api/sessao` |
 | Fila da regulação | `/fila` | `GET /api/regulacao/fila` |
 | Detalhe do caso | `/casos/:coCaso` | `GET /api/regulacao/casos/:coCaso` |
+| Fotos do caso (no detalhe, sob pedido) | `/casos/:coCaso` | `GET /api/regulacao/casos/:coCaso/fotos` |
+| Decisão do caso (no detalhe) | `/casos/:coCaso` | `POST /api/regulacao/casos/:coCaso/decisao` |
 
 - **Fila:** casos em `ANALISE` ou `ADJUDICACAO`, do prazo mais apertado para o
   mais folgado. O caso entra na fila quando a equipe fecha a captura no
@@ -34,9 +36,18 @@ regra `campo-nao-importa-motor` do `identificasus-app`).
 - Cada consulta da fila e cada abertura de caso ficam na trilha de auditoria
   (`mob_auditoria`, finalidade `ADJUDICACAO`), gravadas pelo backend.
 
-**Ainda não existe:** comparação de candidatos, dupla conferência e
-adjudicação. O banco não tem fonte de candidatos (desaparecidos, registros
-hospitalares etc.); de onde eles vêm é a decisão que destrava essa etapa.
+- **Fotos:** só carregam quando alguém clica em "Mostrar fotos" (ver foto vai
+  para a trilha). Cada uma vem do store privado por uma URL assinada que vale
+  10 minutos.
+- **Decisão:** "Não resolvido" ou "Encaminhar à perícia", com motivo
+  obrigatório (10 a 300 caracteres) que vai para o histórico com o autor. O
+  caso sai da fila. Se outra estação decidiu antes, a tela avisa (409).
+
+**Ainda não existe:** comparação de candidatos, dupla conferência e o desfecho
+"resolvido", que diz a quem o caso foi vinculado. O banco não tem fonte de
+candidatos (desaparecidos, registros hospitalares etc.); de onde eles vêm é a
+decisão que destrava essa etapa. O envio à perícia em si também continua fora
+do sistema.
 
 ## Stack
 

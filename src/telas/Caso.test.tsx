@@ -26,7 +26,15 @@ vi.mock('@/servicos/regulacao', async (original) => ({
     if (respostaDeFotos instanceof Error) throw respostaDeFotos;
     return respostaDeFotos;
   },
+  decidirCaso: async (coCaso: string, decisao: string, motivo: string) => {
+    chamadasDeDecisao(coCaso, decisao, motivo);
+    if (respostaDeDecisao instanceof Error) throw respostaDeDecisao;
+    return respostaDeDecisao;
+  },
 }));
+
+const chamadasDeDecisao = vi.fn<(coCaso: string, decisao: string, motivo: string) => void>();
+let respostaDeDecisao: Regulacao.DecisaoRegistrada | Error = { coCaso: 'NN-2026-ABCDEFGH', stCaso: 'NAO_RESOLVIDO' };
 
 const { ErroApi } = await import('@/servicos/regulacao');
 
@@ -59,6 +67,7 @@ function abrir(coCaso = 'NN-2026-ABCDEFGH') {
       <Routes>
         <Route path="/casos/:coCaso" element={<Caso />} />
         <Route path="/entrar" element={<p>tela de entrar</p>} />
+        <Route path="/fila" element={<p>tela da fila</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -170,5 +179,64 @@ describe('tela do caso: fotos', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Mostrar fotos' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('O servidor não respondeu agora.');
     expect(screen.getByRole('heading', { name: 'NN-2026-ABCDEFGH' })).toBeInTheDocument();
+  });
+});
+
+describe('tela do caso: decisão', () => {
+  beforeEach(() => {
+    chamadasDeDecisao.mockReset();
+    resposta = CASO;
+    respostaDeDecisao = { coCaso: 'NN-2026-ABCDEFGH', stCaso: 'NAO_RESOLVIDO' };
+  });
+
+  it('(!) não oferece "resolvido", e diz por quê', async () => {
+    abrir();
+    await screen.findByRole('heading', { name: 'Decisão' });
+    expect(screen.getByRole('radio', { name: /Não resolvido/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Encaminhar à perícia/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /^Resolvido/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/depende da comparação de candidatos e da dupla/)).toBeInTheDocument();
+  });
+
+  it('(!) o botão só libera com decisão escolhida e motivo de pelo menos 10 caracteres', async () => {
+    const usuario = userEvent.setup();
+    abrir();
+    const botao = await screen.findByRole('button', { name: 'Registrar decisão' });
+    expect(botao).toBeDisabled();
+
+    await usuario.click(screen.getByRole('radio', { name: /Encaminhar à perícia/ }));
+    await usuario.type(screen.getByRole('textbox', { name: 'Motivo' }), 'curto');
+    expect(botao).toBeDisabled();
+
+    await usuario.type(screen.getByRole('textbox', { name: 'Motivo' }), ' demais, agora sim');
+    expect(botao).toBeEnabled();
+  });
+
+  it('registra a decisão, confirma e leva de volta à fila', async () => {
+    respostaDeDecisao = { coCaso: 'NN-2026-ABCDEFGH', stCaso: 'PERICIA' };
+    const usuario = userEvent.setup();
+    abrir();
+    await usuario.click(await screen.findByRole('radio', { name: /Encaminhar à perícia/ }));
+    await usuario.type(screen.getByRole('textbox', { name: 'Motivo' }), 'Tatuagem rara, sem candidato.');
+    await usuario.click(screen.getByRole('button', { name: 'Registrar decisão' }));
+
+    expect(chamadasDeDecisao).toHaveBeenCalledWith('NN-2026-ABCDEFGH', 'PERICIA', 'Tatuagem rara, sem candidato.');
+    expect(await screen.findByText('Caso decidido: Em perícia.')).toBeInTheDocument();
+    // O selo do topo acompanha a decisao.
+    expect(screen.getByText('Em perícia', { selector: '.etiqueta' })).toBeInTheDocument();
+    await usuario.click(screen.getByRole('link', { name: 'Voltar à fila' }));
+    expect(screen.getByText('tela da fila')).toBeInTheDocument();
+  });
+
+  it('(!) outra estação decidiu antes: avisa, sem fingir que gravou', async () => {
+    respostaDeDecisao = new ErroApi(409, 'x');
+    const usuario = userEvent.setup();
+    abrir();
+    await usuario.click(await screen.findByRole('radio', { name: /Não resolvido/ }));
+    await usuario.type(screen.getByRole('textbox', { name: 'Motivo' }), 'Buscas esgotadas sem candidato.');
+    await usuario.click(screen.getByRole('button', { name: 'Registrar decisão' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Outra pessoa acabou de decidir este caso.');
+    expect(screen.queryByText(/Caso decidido/)).not.toBeInTheDocument();
   });
 });

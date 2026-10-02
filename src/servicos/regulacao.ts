@@ -89,3 +89,28 @@ export type Foto = z.infer<typeof esquemaFoto>;
 export function buscarFotos(coCaso: string): Promise<Foto[]> {
   return requisitar(`/regulacao/casos/${encodeURIComponent(coCaso)}/fotos`, z.array(esquemaFoto));
 }
+
+/**
+ * Decisões que o console já registra (US-31). "Resolvido" depende da
+ * comparação de candidatos e da dupla conferência, que ainda não existem.
+ */
+export const DECISOES = [
+  { valor: 'NAO_RESOLVIDO', rotulo: 'Não resolvido', ajuda: 'Buscas esgotadas sem identificar a pessoa.' },
+  { valor: 'PERICIA', rotulo: 'Encaminhar à perícia', ajuda: 'O caso segue para identificação pericial, fora do sistema por enquanto.' },
+] as const;
+export type CodigoDaDecisao = (typeof DECISOES)[number]['valor'];
+
+/** O mesmo mínimo do servidor: um motivo de verdade, e não "ok". */
+export const MOTIVO_MINIMO = 10;
+export const MOTIVO_MAXIMO = 300;
+
+const esquemaDecisaoRegistrada = z.object({ coCaso: z.string(), stCaso: z.string() });
+export type DecisaoRegistrada = z.infer<typeof esquemaDecisaoRegistrada>;
+
+/** O autor é quem está na sessão: o servidor o tira do token, nunca do corpo. */
+export function decidirCaso(coCaso: string, decisao: CodigoDaDecisao, motivo: string): Promise<DecisaoRegistrada> {
+  return requisitar(`/regulacao/casos/${encodeURIComponent(coCaso)}/decisao`, esquemaDecisaoRegistrada, {
+    method: 'POST',
+    body: JSON.stringify({ decisao, motivo: motivo.trim() }),
+  });
+}

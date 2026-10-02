@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Moldura } from '@/componentes/Moldura';
 import { formatarCarimbo, formatarOcorrencia } from '@/dominio/datas';
 import { nomeDoEstado, situacaoDoPrazo, textoDoPrazo } from '@/dominio/prazo';
-import { ErroApi, buscarCaso, buscarFotos } from '@/servicos/regulacao';
-import type { Atributo, Caso as DadosDoCaso, Foto } from '@/servicos/regulacao';
+import {
+  DECISOES, ErroApi, MOTIVO_MAXIMO, MOTIVO_MINIMO, buscarCaso, buscarFotos, decidirCaso,
+} from '@/servicos/regulacao';
+import type { Atributo, CodigoDaDecisao, Caso as DadosDoCaso, Foto } from '@/servicos/regulacao';
 import { esquecerSessao } from '@/servicos/sessao';
 
 type Estado =
@@ -69,12 +71,17 @@ export function Caso() {
         </div>
       )}
 
-      {estado.tipo === 'pronto' && <Detalhe caso={estado.caso} />}
+      {estado.tipo === 'pronto' && (
+        <Detalhe
+          caso={estado.caso}
+          aoDecidir={(stCaso) => setEstado({ tipo: 'pronto', caso: { ...estado.caso, stCaso } })}
+        />
+      )}
     </Moldura>
   );
 }
 
-function Detalhe({ caso }: { caso: DadosDoCaso }) {
+function Detalhe({ caso, aoDecidir }: { caso: DadosDoCaso; aoDecidir: (stCaso: string) => void }) {
   return (
     <>
       <div className="titulo">
@@ -157,7 +164,116 @@ function Detalhe({ caso }: { caso: DadosDoCaso }) {
           </ol>
         )}
       </section>
+
+      <Decidir coCaso={caso.coCaso} aoDecidir={aoDecidir} />
     </>
+  );
+}
+
+type EstadoDaDecisao =
+  | { tipo: 'editando'; erro: string | null }
+  | { tipo: 'enviando' }
+  | { tipo: 'feita'; stCaso: string };
+
+/**
+ * Decisão do caso (US-31): tira o caso da fila com motivo e autor.
+ *
+ * (!) SÓ "NÃO RESOLVIDO" E "PERÍCIA". "Resolvido" diz a quem o caso foi
+ *     vinculado, e isso só existe com a comparação de candidatos e a dupla
+ *     conferência; a tela diz isso em vez de esconder a opção.
+ *
+ * (!) MOTIVO OBRIGATÓRIO, com o mesmo mínimo do servidor. Ele vai para o
+ *     histórico do caso, com o autor; o botão só libera com o motivo.
+ *
+ * (!) DEPOIS DE DECIDIR, O CASO SAI DA FILA: a tela confirma e leva de volta,
+ *     em vez de continuar mostrando um caso que já não é da central.
+ */
+function Decidir({ coCaso, aoDecidir }: { coCaso: string; aoDecidir: (stCaso: string) => void }) {
+  const [decisao, setDecisao] = useState<CodigoDaDecisao | null>(null);
+  const [motivo, setMotivo] = useState('');
+  const [estado, setEstado] = useState<EstadoDaDecisao>({ tipo: 'editando', erro: null });
+  const tamanho = motivo.trim().length;
+  const pronto = decisao !== null && tamanho >= MOTIVO_MINIMO && tamanho <= MOTIVO_MAXIMO;
+
+  async function registrar(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    if (!pronto || decisao === null) return;
+    setEstado({ tipo: 'enviando' });
+    try {
+      const r = await decidirCaso(coCaso, decisao, motivo);
+      setEstado({ tipo: 'feita', stCaso: r.stCaso });
+      // O selo do topo passa a dizer o estado novo, e nao "Em analise".
+      aoDecidir(r.stCaso);
+    } catch (erro) {
+      let texto = 'Não foi possível registrar a decisão. Tente de novo.';
+      if (erro instanceof ErroApi && erro.status === 409) texto = 'Outra pessoa acabou de decidir este caso.';
+      else if (erro instanceof ErroApi && erro.status === 404) texto = 'Este caso já não está na fila da regulação.';
+      else if (erro instanceof ErroApi) texto = erro.message;
+      setEstado({ tipo: 'editando', erro: texto });
+    }
+  }
+
+  if (estado.tipo === 'feita') {
+    return (
+      <section className="painel" aria-labelledby="titulo-decisao">
+        <h2 id="titulo-decisao">Decisão</h2>
+        <div className="aviso-ok" role="status">
+          <strong>Caso decidido: {nomeDoEstado(estado.stCaso)}.</strong>
+          O motivo ficou no histórico, com o seu nome. O caso saiu da fila.
+        </div>
+        <Link to="/fila" className="botao-secundario">Voltar à fila</Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="painel" aria-labelledby="titulo-decisao">
+      <h2 id="titulo-decisao">Decisão</h2>
+      <p className="painel-vazio">
+        &ldquo;Resolvido&rdquo; ainda não está disponível: depende da comparação de candidatos e da dupla
+        conferência. Por enquanto, a central pode encerrar sem identificação ou encaminhar à perícia.
+      </p>
+      <form className="decisao" onSubmit={(e) => void registrar(e)}>
+        <fieldset>
+          <legend>Como o caso sai da fila</legend>
+          {DECISOES.map((d) => (
+            <label key={d.valor} className="decisao-opcao">
+              <input
+                type="radio" name="decisao" value={d.valor}
+                checked={decisao === d.valor}
+                onChange={() => setDecisao(d.valor)}
+              />
+              <span>
+                <strong>{d.rotulo}</strong>
+                <small>{d.ajuda}</small>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        {/* O rotulo tem so "Motivo": a ajuda fica fora dele, ligada por
+            aria-describedby, senao o leitor de tela le tudo como o nome. */}
+        <div className="campo">
+          <label htmlFor="motivo-decisao"><span>Motivo</span></label>
+          <textarea
+            id="motivo-decisao"
+            value={motivo}
+            maxLength={MOTIVO_MAXIMO}
+            rows={3}
+            onChange={(e) => setMotivo(e.target.value)}
+            aria-describedby="ajuda-motivo"
+          />
+          <small id="ajuda-motivo">
+            Vai para o histórico do caso, com o seu nome. Mínimo de {MOTIVO_MINIMO} caracteres ({tamanho}/{MOTIVO_MAXIMO}).
+          </small>
+        </div>
+        {estado.tipo === 'editando' && estado.erro && (
+          <div className="aviso" role="alert"><strong>{estado.erro}</strong></div>
+        )}
+        <button type="submit" className="botao" disabled={!pronto || estado.tipo === 'enviando'}>
+          {estado.tipo === 'enviando' ? 'Registrando…' : 'Registrar decisão'}
+        </button>
+      </form>
+    </section>
   );
 }
 

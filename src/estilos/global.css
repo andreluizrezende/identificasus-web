@@ -159,6 +159,27 @@ button:disabled { cursor: default; opacity: .6; }
 .fotos-legenda { font-size: 12.5px; color: var(--ink-2); }
 .aviso .botao-secundario { margin-top: 8px; }
 
+.decisao { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+.decisao fieldset { border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.decisao legend { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+.decisao-opcao {
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+  border: 1px solid var(--linha); border-radius: var(--raio); background: var(--superficie); cursor: pointer;
+}
+.decisao-opcao span { display: flex; flex-direction: column; gap: 2px; }
+.decisao-opcao small { color: var(--ink-2); }
+.decisao textarea {
+  border: 1px solid var(--linha); border-radius: var(--raio); padding: 8px 12px;
+  font-size: 14px; font-family: inherit; resize: vertical;
+}
+.decisao .botao { width: auto; align-self: flex-start; padding: 0 20px; }
+.aviso-ok {
+  border: 1px solid var(--bom); background: var(--bom-claro, #EAF6EF); border-radius: var(--raio);
+  padding: 14px 16px; margin-bottom: 12px;
+}
+.aviso-ok strong { display: block; margin-bottom: 4px; }
+.painel .botao-secundario { display: inline-block; text-decoration: none; }
+
 .tabela a { color: var(--primaria); text-decoration: none; }
 .tabela a:hover { text-decoration: underline; }
 
