@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    # (!) IMAGEM OFICIAL DO PLAYWRIGHT, com o Chromium e os pacotes de sistema
+    #     ja instalados. Antes, `playwright install --with-deps` baixava ~32 MB
+    #     de pacotes pelo apt a cada execucao, e o espelho do Ubuntu as vezes
+    #     entregava a 135 kB/s: o passo ia de 20 s para mais de 4 min.
+    #
+    # (!) A VERSAO DA IMAGEM TEM DE SER A DO @playwright/test (fixa no
+    #     package.json, sem ^). O primeiro passo depois do npm ci confere.
+    #     Para atualizar o Playwright: mudar os dois juntos, no mesmo commit.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      VERSAO_DA_IMAGEM: 1.63.0
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Playwright do projeto igual ao da imagem
+        run: |
+          instalado=$(node -p "require('@playwright/test/package.json').version")
+          if [ "$instalado" != "$VERSAO_DA_IMAGEM" ]; then
+            echo "::error::@playwright/test $instalado, mas a imagem do CI e $VERSAO_DA_IMAGEM. Atualize os dois juntos (container.image e VERSAO_DA_IMAGEM neste arquivo)."
+            exit 1
+          fi
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run lint:arquitetura
+      - run: npm run test
+      - run: npm run build
+
+      - run: npm run e2e

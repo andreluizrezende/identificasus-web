@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.local
+coverage/
+playwright-report/
+test-results/
+.vercel
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.log

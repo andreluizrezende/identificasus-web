@@ -1,0 +1,28 @@
+:root {
+  --ink: #14161B;
+  --ink-2: #4B5261;
+  --ink-3: #737B8C;
+  --linha: #DCDFE5;
+  --linha-2: #EDEFF2;
+  --superficie: #FFFFFF;
+  --fundo: #F4F5F3;
+
+  --primaria: #1B4DA8;
+  --primaria-escura: #143A80;
+  --primaria-clara: #EAF0FA;
+
+  --bom: #0F7A4F;
+  --bom-claro: #E6F3EC;
+  --atencao: #A66A00;
+  --atencao-claro: #FBF1DE;
+  --critico: #A3241C;
+  --critico-claro: #FAEAE8;
+  --ardosia: #3F4756;
+
+  /* Usado em pe, com pressa e as vezes com luva. */
+  --alvo-minimo: 44px;
+  --raio: 3px;
+
+  --fonte: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --fonte-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}

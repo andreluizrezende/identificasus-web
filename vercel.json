@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/:caminho*", "destination": "https://identificasus-backend.vercel.app/api/:caminho*" },
+    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
+  ]
+}

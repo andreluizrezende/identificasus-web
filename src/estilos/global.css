@@ -1,0 +1,198 @@
+@import './tokens.css';
+
+/*
+ * Console de mesa: tela larga, mouse e teclado. Os tokens são os mesmos do app
+ * de campo (tokens.css, copiado de lá) para os dois parecerem um sistema só.
+ */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--ink);
+  font-family: var(--fonte);
+  font-size: 14px;
+}
+
+button { font-family: inherit; cursor: pointer; }
+button:disabled { cursor: default; opacity: .6; }
+
+:focus-visible {
+  outline: 2px solid var(--primaria);
+  outline-offset: 2px;
+}
+
+.mono { font-family: var(--fonte-mono); }
+
+/* ── moldura ─────────────────────────────────────────────── */
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  height: 56px;
+  background: var(--ink);
+  color: #fff;
+}
+.barra-marca { font-weight: 600; font-size: 16px; }
+.barra-marca span { font-weight: 400; color: #A8AEBB; margin-left: 8px; }
+.barra-pessoa { margin-left: auto; text-align: right; font-size: 13px; line-height: 1.3; }
+.barra-pessoa small { color: #A8AEBB; }
+.barra-sair {
+  background: transparent; color: #fff; border: 1px solid #4B5261;
+  border-radius: var(--raio); padding: 7px 14px; font-size: 13px;
+}
+.barra-sair:hover { border-color: #A8AEBB; }
+
+.conteudo { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
+
+/* ── entrar ─────────────────────────────────────────────── */
+
+.entrar {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.entrar-cartao {
+  width: 100%;
+  max-width: 400px;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 32px;
+}
+.entrar-cartao h1 { margin: 0; font-size: 20px; }
+.entrar-cartao > p { margin: 6px 0 24px; color: var(--ink-2); line-height: 1.5; }
+
+.campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.campo span {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .02em; color: var(--ink-3);
+}
+.campo input {
+  height: 40px; border: 1px solid var(--linha); border-radius: var(--raio);
+  padding: 0 12px; font-size: 14px; font-family: inherit;
+}
+.campo small { color: var(--ink-3); font-size: 12px; }
+
+.botao {
+  width: 100%; height: 40px; border: none; border-radius: var(--raio);
+  background: var(--primaria); color: #fff; font-weight: 600; font-size: 14px;
+}
+.botao:hover:not(:disabled) { background: var(--primaria-escura); }
+
+.alerta {
+  border: 1px solid var(--critico); background: var(--critico-claro);
+  border-radius: var(--raio); padding: 10px 12px; margin-bottom: 16px;
+}
+.alerta strong { display: block; }
+.alerta span { color: var(--ink-2); font-size: 13px; }
+
+/* ── fila ───────────────────────────────────────────────── */
+
+.titulo { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+.titulo h1 { margin: 0; font-size: 22px; }
+.titulo-contagem { color: var(--ink-2); }
+.titulo-acao { margin-left: auto; }
+.subtitulo { margin: 0 0 20px; color: var(--ink-2); }
+
+.botao-secundario {
+  background: var(--superficie); border: 1px solid var(--linha);
+  border-radius: var(--raio); padding: 7px 14px; font-size: 13px; color: var(--ink);
+}
+.botao-secundario:hover:not(:disabled) { border-color: var(--ink-3); }
+
+.tabela {
+  width: 100%; border-collapse: collapse; background: var(--superficie);
+  border: 1px solid var(--linha); border-radius: var(--raio);
+}
+.tabela th {
+  text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .02em; color: var(--ink-3); padding: 10px 14px;
+  border-bottom: 1px solid var(--linha); background: var(--linha-2);
+}
+.tabela td { padding: 11px 14px; border-bottom: 1px solid var(--linha-2); }
+.tabela tr:last-child td { border-bottom: none; }
+.tabela td.numero { text-align: right; font-variant-numeric: tabular-nums; }
+
+.prazo { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.prazo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.prazo-vencido { color: var(--critico); font-weight: 600; }
+.prazo-vencido::before { background: var(--critico); }
+.prazo-hoje, .prazo-proximo { color: var(--atencao); font-weight: 600; }
+.prazo-hoje::before, .prazo-proximo::before { background: var(--atencao); }
+.prazo-folgado::before { background: var(--bom); }
+.prazo-sem-prazo { color: var(--ink-3); }
+
+.completude { display: inline-flex; align-items: center; gap: 8px; }
+.completude-barra { width: 64px; height: 6px; background: var(--linha-2); border-radius: 3px; overflow: hidden; }
+.completude-barra i { display: block; height: 100%; background: var(--primaria); }
+
+.vazio, .aviso {
+  background: var(--superficie); border: 1px solid var(--linha);
+  border-radius: var(--raio); padding: 32px; text-align: center; color: var(--ink-2);
+}
+.aviso { border-color: var(--critico); background: var(--critico-claro); color: var(--ink); text-align: left; }
+.aviso strong { display: block; margin-bottom: 4px; }
+
+/* ── caso ───────────────────────────────────────────────── */
+
+.tabela a { color: var(--primaria); text-decoration: none; }
+.tabela a:hover { text-decoration: underline; }
+
+.voltar {
+  display: inline-block; margin-bottom: 14px; color: var(--ink-2);
+  text-decoration: none; font-size: 13px;
+}
+.voltar:hover { color: var(--ink); }
+
+.etiqueta {
+  font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: var(--raio);
+  background: var(--linha-2); color: var(--ink-2);
+}
+
+.painel {
+  background: var(--superficie); border: 1px solid var(--linha);
+  border-radius: var(--raio); padding: 20px 24px; margin-bottom: 16px;
+}
+.painel h2 { margin: 0 0 14px; font-size: 16px; }
+.painel .tabela { border: none; }
+.painel-vazio { margin: 0; color: var(--ink-3); }
+
+.ficha {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 24px; margin: 0;
+}
+.ficha div { min-width: 0; }
+.ficha-larga { grid-column: span 2; }
+.ficha dt {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .02em; color: var(--ink-3); margin-bottom: 4px;
+}
+.ficha dd { margin: 0; overflow-wrap: anywhere; }
+
+.grupo + .grupo { margin-top: 18px; }
+.grupo h3 { margin: 0 0 8px; font-size: 13px; color: var(--ink-2); }
+
+.historico { list-style: none; margin: 0; padding: 0; }
+.historico li {
+  display: grid; grid-template-columns: 140px 1fr auto; gap: 16px;
+  padding: 9px 0; border-bottom: 1px solid var(--linha-2);
+}
+.historico li:last-child { border-bottom: none; }
+.historico-quando { color: var(--ink-2); }
+.historico-motivo { color: var(--ink-2); }
+.historico-autor { color: var(--ink-3); }
+
+/* Mesmas colunas em todos os grupos: a leitura desce reta de um para o outro. */
+.grupo .tabela { table-layout: fixed; }
+.grupo .tabela th:nth-child(1) { width: 20%; }
+.grupo .tabela th:nth-child(2) { width: 27%; }
+.grupo .tabela th:nth-child(3) { width: 23%; }
+.grupo .tabela th:nth-child(4) { width: 14%; }
+.grupo .tabela th:nth-child(5) { width: 16%; }
+.grupo .tabela td { overflow-wrap: anywhere; }
+.grupo .tabela td.mono { white-space: nowrap; }
